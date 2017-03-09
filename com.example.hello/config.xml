@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="LegBag" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>HelloCordova</name>
+<widget id="com.example.LegBag" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>LegBag</name>
     <description>
-        A sample Apache Cordova application that responds to the deviceready event.
+        An app to control a leg bag emptier
     </description>
-    <author email="dev@cordova.apache.org" href="http://cordova.io">
+    <author email="none@none.com" href="http://none.com">
         Apache Cordova Team
     </author>
     <content src="index.html" />
