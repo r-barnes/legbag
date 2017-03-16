@@ -26,4 +26,7 @@
     <plugin name="cordova-plugin-whitelist" spec="1" />
     <plugin name="cordova-plugin-bluetoothle" spec="~4.3.1" />
     <plugin name="cordova-plugin-bluetooth-serial" spec="~0.4.6" />
+    <plugin name="cordova-plugin-bluetooth-peripheral-usage-description" spec="~1.0.0">
+        <variable name="TEXT" value="For connecting with leg bag device" />
+    </plugin>
 </widget>
