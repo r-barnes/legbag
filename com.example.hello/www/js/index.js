@@ -123,13 +123,11 @@ var app = {
   },
 
   bagEmpty: function(){
-    return;
-    bleWrite("T"); //TODO
+    this.bleWrite("O"); //TODO
   },
 
   bagStopEmpty: function(){
-    return;
-    bleWrite("T"); //TODO
+    this.bleWrite("C"); //TODO
   },
 
   interfaceDoBagEmpty: function(){ //TODO: Use clearTimeout(myVar); to cancel
