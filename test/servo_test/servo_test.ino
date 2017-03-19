@@ -60,6 +60,7 @@ void setup() {
 void loop() {
   if ( Serial.available()) {
     long a = Serial.parseInt();
+    if(a==0) return; //parseInt returns a belated 0. This is the easiest way to disregard that.
     myservo.writeMicroseconds(a);
   }
 }
