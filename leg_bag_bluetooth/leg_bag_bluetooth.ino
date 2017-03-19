@@ -8,8 +8,23 @@ connected, it accepts UART serial input via Bluetooth. The program accepts the
 following commands:
 
     Command | Action
+    ----------------------------------------------------------------------------
     O       | Opens the bag by turning the servo to its 0 degree position
     C       | Closes the bag by turning the servo to its 90 degree position
+
+The program assumes the existence of several external devices:
+
+    Sensor  | Description
+    ----------------------------------------------------------------------------
+    Servo   | Opens and closes the bag by toggling between two positions.
+            |
+    Flex    | A strip whose resistence increases when it is bent. Sampled by
+            | connecting it as part of a voltage divider.
+            |
+    Touch   | A metal plate serving as a capacitor in an RC circuit. The charge
+              time of the circuit is used to determine if the plate has been
+              touched.
+
 */
 
 #include <Arduino.h>
