@@ -209,6 +209,18 @@ input[type=range]:focus::-webkit-slider-runnable-track {
   display:           none;
 }
 
+#empty_progress {
+  position:         absolute;
+  top:              0;
+  left:             0;
+  height:           70px;
+  border-radius:    35px;
+  width:            0;
+  background-color: #72D4F9;
+  z-index:          -10;
+  display:          none;
+}
+
 
 #frame_previous_times {
   border:     1px solid black;

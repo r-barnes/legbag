@@ -16,10 +16,13 @@ var app = {
   
   update_interval: 5,  //Seconds between updating interface times //TODO: Longer
 
-  empty_duration: 10,          //Seconds
+  delay_inc_empty_progress: 100,
+
+  empty_duration: 10,         //Seconds
   empty_handle:   null,       //Handle of emptying process. Used to cancel.
   empty_data:     null,       //Data structure containing info about previous empty events
-  
+  empty_start:    null,       //Time when empty started
+
   last_empty_attempt: new Date(), //Time when user last tried to empty bag, may or may not have been successful. Used to debounce.
   time_btwn_empties: 1500,        //Milliseconds between empty events. Used to debounce.
 
@@ -197,7 +200,18 @@ var app = {
       $("#arrows").show();
       $("#emptying").hide();
       $('#stop').hide();
+      $('#empty_progress').hide();
+      $('#empty_progress').css('width','0');
     });
+  },
+
+  interfaceIncEmptyProgress: function(){
+    var self = this;
+    var now  = new Date();
+    var prog = 100*((now-empty_start)/1000)/this.empty_duration;
+    $('#empty_progress').css('width',prog+"%");
+    if(prog<100)
+      setTimeout(this.interfaceIncEmptyProgress.bind(this), self.delay_inc_empty_progress);
   },
 
   interfaceDoBagEmpty: function(){ //TODO: Use clearTimeout(myVar); to cancel
@@ -207,11 +221,14 @@ var app = {
     $("#arrows").hide();
     $("#emptying").show();
     $('#stop').show();
+    $('#empty_progress').show();
     self.bagEmpty(function(){
+      empty_start = new Date();
       self.dataAddEmpty(new Date());
       self.interfaceUpdateTimes();
       self.interfacePastTimes();
       self.empty_handle = setTimeout(self.interfaceStopEmpty.bind(self), self.empty_duration*1000);
+      setTimeout(self.interfaceIncEmptyProgress.bind(self), self.delay_inc_empty_progress);
     });
   },
 
