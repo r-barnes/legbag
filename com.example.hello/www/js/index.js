@@ -1,12 +1,24 @@
+var bluetoothle = {
+  initialize: function(){},
+  startScan: function(){},
+  retrieveConnected: function(){},
+  stopScan: function(){},
+  connect: function(){},
+  discover: function(){},
+  stringToBytes: function(){},
+  bytesToEncodedString: function(){},
+  write: function(){}
+}
+
 var app = {
   ble_enabled: true,    //Used for debugging
   ble_address: null,    //Hold address of associated bluetooth device
   
   update_interval: 5,  //Seconds between updating interface times //TODO: Longer
 
-  empty_duration:     2,          //Seconds
-  empty_handle:       null,       //Handle of emptying process. Used to cancel.
-  empty_data:         null,       //Data structure containing info about previous empty events
+  empty_duration: 10,          //Seconds
+  empty_handle:   null,       //Handle of emptying process. Used to cancel.
+  empty_data:     null,       //Data structure containing info about previous empty events
   
   last_empty_attempt: new Date(), //Time when user last tried to empty bag, may or may not have been successful. Used to debounce.
   time_btwn_empties: 1500,        //Milliseconds between empty events. Used to debounce.
@@ -34,7 +46,8 @@ var app = {
 
     gui_confirm = $('#confirm');
 
-    gui_confirm.on('touchend',self.sliderTouchEnd.bind(this));
+    gui_confirm.on('touchend',self.ixnTouchEnd.bind(this));
+    $('#stop').on('click',   self.ixnStop.bind(this));
 
     self.dataLoad();
     self.interfaceUpdateTimes();
@@ -111,10 +124,10 @@ var app = {
     var self = this;
     bluetoothle.discover(
       function(result){
-        console.log(result);
         //TODO
       },
       function(result){
+        //TODO
       }, 
       {address:self.ble_address}
     );
@@ -177,24 +190,28 @@ var app = {
       return this.empty_data[0];
   },
 
+  interfaceStopEmpty: function(){
+    this.bagStopEmpty(function(){
+      gui_confirm.val(0);
+      gui_confirm.show();
+      $("#arrows").show();
+      $("#emptying").hide();
+      $('#stop').hide();
+    });
+  },
+
   interfaceDoBagEmpty: function(){ //TODO: Use clearTimeout(myVar); to cancel
     var self = this;
 
     gui_confirm.hide();
     $("#arrows").hide();
     $("#emptying").show();
+    $('#stop').show();
     self.bagEmpty(function(){
       self.dataAddEmpty(new Date());
       self.interfaceUpdateTimes();
       self.interfacePastTimes();
-
-      self.empty_handle = setTimeout(function(){
-        gui_confirm.val(0);
-        gui_confirm.show();
-        $("#arrows").show();
-        $("#emptying").hide();
-        self.bagStopEmpty();
-      }, self.empty_duration*1000);
+      self.empty_handle = setTimeout(self.interfaceStopEmpty.bind(self), self.empty_duration*1000);
     });
   },
 
@@ -227,7 +244,7 @@ var app = {
     $('#frame_previous_times').html(out);
   },
 
-  sliderTouchEnd: function(){ //TODO: Does Rafe like this sliding back behavior?
+  ixnTouchEnd: function(){ //TODO: Does Rafe like this sliding back behavior?
     var slidepos = gui_confirm.val();
 
     if(slidepos>90){
@@ -238,8 +255,13 @@ var app = {
       return;
     } else {
       gui_confirm.val(slidepos-1);
-      setTimeout(this.sliderTouchEnd.bind(this), 5);
+      setTimeout(this.ixnTouchEnd.bind(this), 5);
     }
+  },
+
+  ixnStop: function(){
+    clearTimeout(this.empty_handle);
+    this.interfaceStopEmpty();
   }
 };
 
