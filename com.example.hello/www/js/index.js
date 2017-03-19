@@ -1,4 +1,4 @@
-var bluetoothle = {
+/*var bluetoothle = {
   initialize: function(){},
   startScan: function(){},
   retrieveConnected: function(){},
@@ -8,7 +8,7 @@ var bluetoothle = {
   stringToBytes: function(){},
   bytesToEncodedString: function(){},
   write: function(){}
-}
+}*/
 
 var app = {
   ble_enabled: true,    //Used for debugging
@@ -284,4 +284,4 @@ var app = {
 
 app.initialize();
 
-app.onDeviceReady();
+//app.onDeviceReady();
