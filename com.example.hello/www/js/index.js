@@ -4,10 +4,14 @@ var app = {
   
   update_interval: 5,  //Seconds between updating interface times //TODO: Longer
 
-  empty_duration: 2,    //Seconds
-  empty_handle:   null, //Handle of emptying process. Used to cancel.
-  empty_data:     null, //Data structure containing info about previous empty events
-  empty_last:     null,
+  empty_duration:     2,          //Seconds
+  empty_handle:       null,       //Handle of emptying process. Used to cancel.
+  empty_data:         null,       //Data structure containing info about previous empty events
+  
+  last_empty_attempt: new Date(), //Time when user last tried to empty bag, may or may not have been successful. Used to debounce.
+  time_btwn_empties: 1500,        //Milliseconds between empty events. Used to debounce.
+
+  gui_confirm: null,              //Confirm object
 
   //These values are specific to the Feather board. If a different board is
   //used, they should be adjusted to indicate the appropriate Bluetooth services
@@ -28,11 +32,13 @@ var app = {
   onDeviceReady: function() {
     var self = this;
 
-    $('#confirm').on('touchend',self.interfaceZeroSlider.bind(this));
-    $("#confirm").on('change', self.interfaceSliding.bind(this));
+    gui_confirm = $('#confirm');
+
+    gui_confirm.on('touchend',self.sliderTouchEnd.bind(this));
 
     self.dataLoad();
     self.interfaceUpdateTimes();
+    self.interfacePastTimes();
     setInterval(self.interfaceUpdateTimes.bind(this), self.update_interval*1000);
 
     bluetoothle.initialize(
@@ -137,7 +143,6 @@ var app = {
 
   bagEmpty: function(succfunc){
     this.bleWrite("O", succfunc); //TODO
-    this.dataAddEmpty();
   },
 
   bagStopEmpty: function(succfunc){
@@ -175,18 +180,19 @@ var app = {
   interfaceDoBagEmpty: function(){ //TODO: Use clearTimeout(myVar); to cancel
     var self = this;
 
-    $("#confirm").fadeOut();
-    $("#arrows").fadeOut();
-    $("#emptying").fadeIn();
+    gui_confirm.hide();
+    $("#arrows").hide();
+    $("#emptying").show();
     self.bagEmpty(function(){
       self.dataAddEmpty(new Date());
       self.interfaceUpdateTimes();
+      self.interfacePastTimes();
 
       self.empty_handle = setTimeout(function(){
-        $('#confirm').val(0);
-        $("#confirm").fadeIn();
-        $("#arrows").fadeIn();
-        $("#emptying").fadeOut();
+        gui_confirm.val(0);
+        gui_confirm.show();
+        $("#arrows").show();
+        $("#emptying").hide();
         self.bagStopEmpty();
       }, self.empty_duration*1000);
     });
@@ -214,18 +220,26 @@ var app = {
     $('#time_ago').text( out );
   },
 
-  interfaceZeroSlider: function(){ //TODO: Does Rafe like this sliding back behavior?
-    var slidepos = $('#confirm').val();
-    if(slidepos==0 || slidepos>90)
-      return;
-    $('#confirm').val(slidepos-1);
-    setTimeout(this.interfaceZeroSlider.bind(this), 5);
+  interfacePastTimes: function(){
+    var out = "";
+    for(i in this.empty_data)
+      out += this.empty_data[i].toLocaleString() + "<br>";
+    $('#frame_previous_times').html(out);
   },
 
-  interfaceSliding: function(){
-    var slidepos = $('#confirm').val();
-    if(slidepos > 90)
-      this.interfaceDoBagEmpty();
+  sliderTouchEnd: function(){ //TODO: Does Rafe like this sliding back behavior?
+    var slidepos = gui_confirm.val();
+
+    if(slidepos>90){
+      var now      = new Date();
+      if(slidepos > 90 && (now-this.last_empty_attempt)>this.time_btwn_empties)
+        this.interfaceDoBagEmpty();
+    } else if(slidepos==0){
+      return;
+    } else {
+      gui_confirm.val(slidepos-1);
+      setTimeout(this.sliderTouchEnd.bind(this), 5);
+    }
   }
 };
 
