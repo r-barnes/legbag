@@ -16,6 +16,8 @@
 #define MINIMUM_FIRMWARE_VERSION    "0.6.6"
 #define MODE_LED_BEHAVIOUR          "SPI"
 
+#define BAG_CONTROL_PIN             A0
+
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 
 // A small helper
@@ -34,7 +36,9 @@ void setup(void){
   while (!Serial);  // required for Flora & Micro //TODO: Need to remove this in order to get it to start with app
   delay(500);
 
-  pinMode(A0, OUTPUT);
+  //Set up pin for opening and closing (controlling) the bag
+  pinMode(BAG_CONTROL_PIN, OUTPUT);
+  digitalWrite(BAG_CONTROL_PIN, LOW);
 
   Serial.begin(115200);
   Serial.println(F("Adafruit Bluefruit Command <-> Data Mode Example"));
@@ -108,9 +112,9 @@ void loop(void){
       tone(6, 15, 2000);
       
     } else if(c=='O'){ //Open
-      digitalWrite(A0, HIGH);
+      digitalWrite(BAG_CONTROL_PIN, HIGH);
     } else if(c=='C'){ //Close
-      digitalWrite(A0, LOW);
+      digitalWrite(BAG_CONTROL_PIN, LOW);
     }
 
     Serial.print((char)c);
