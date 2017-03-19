@@ -85,8 +85,8 @@ var app = {
           self.bleConnect(result.address);
         }
       },
-      function(){
-        //TODO
+      function(result){
+        console.log('startScan',result);//TODO
       }, 
       null
     );
@@ -116,8 +116,8 @@ var app = {
         console.log("Connected!");
         self.bleDiscover();
       },
-      function(){
-        console.log("Failed to connect!");
+      function(result){
+        console.log("Failed to connect!",result);
       },
       {address:address}
     );
@@ -127,10 +127,11 @@ var app = {
     var self = this;
     bluetoothle.discover(
       function(result){
-        //TODO
+        self.bleSubscribe();
+        console.log('Discover succeeded',result);
       },
       function(result){
-        //TODO
+        console.log('Discover failed',result);
       }, 
       {address:self.ble_address}
     );
@@ -146,7 +147,7 @@ var app = {
           succfunc();
       }, 
       function(result){
-        console.log(result); //TODO
+        console.log('Write failure',result); //TODO
       },
       {
         address:        self.ble_address,
@@ -155,6 +156,31 @@ var app = {
         value:          encodedString
       }
     );
+  },
+
+  bleSubscribe: function(){
+    var self = this;
+
+    bluetoothle.subscribe(self.subscribeReceived.bind(self),
+      function(result){
+        console.log("subscribe failure",result); //TODO
+      },
+      {
+        address:        self.ble_address,
+        service:        self.UART_SERVICE_UUID,
+        characteristic: self.RX_CHAR_UUID
+      }
+    );
+  },
+
+  subscribeReceived: function(result){
+    if(result.status=="subscribed"){
+      console.log("Subscription successful", result);
+    } else if(result.status=="subscribedResult"){
+      var value = bluetoothle.bytesToString(bluetoothle.encodedStringToBytes(result.value));
+      console.log(value);
+      $('#percent_full').text(value);
+    }
   },
 
   bagEmpty: function(succfunc){
@@ -285,3 +311,21 @@ var app = {
 app.initialize();
 
 //app.onDeviceReady();
+
+
+/*
+
+bluetoothle.unsubscribe(
+  function(result){
+    console.log("unsubscribe success",result)
+  }, 
+  function(result){
+    console.log("unsubscribe failure",result)
+  },
+  {
+    address:        app.ble_address,
+    service:        app.UART_SERVICE_UUID,
+    characteristic: app.RX_CHAR_UUID
+  }
+);
+*/
