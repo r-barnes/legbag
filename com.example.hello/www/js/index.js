@@ -20,7 +20,7 @@ var app = {
   onDeviceReady: function() {
     var self = this;
 
-    $('#confirm').mouseup(self.interfaceZeroSlider.bind(this));
+    $('#confirm').on('touchend',self.interfaceZeroSlider.bind(this));
     $("#confirm").on('change', self.interfaceSliding.bind(this));
 
     bluetoothle.initialize(
