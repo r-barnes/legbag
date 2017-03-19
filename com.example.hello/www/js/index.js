@@ -15,6 +15,9 @@ var app = {
   ble_address: null,    //Hold address of associated bluetooth device
   
   update_interval: 5,  //Seconds between updating interface times //TODO: Longer
+  check_interval:  5,  //Seconds between checking connection status
+
+  check_handle: null,
 
   delay_inc_empty_progress: 100,
 
@@ -73,14 +76,44 @@ var app = {
     );
   },
 
+  checkConnection: function(){
+    var self = this;
+    bluetoothle.isConnected(
+      function(result){
+        console.log('isConnected true',result);
+        if(!result.isConnected){
+          bluetoothle.close(
+            function(result){console.log('close success',result);},
+            function(result){console.log('close failure',result);},
+            {address:self.ble_address}
+          );
+          bluetoothle.isScanning(function(result){
+            if(!result.isScanning){
+              self.bleScan();
+              clearTimeout(self.check_handle);
+            }
+          });
+        }
+      },
+      function(result){
+        console.log('isConnected failure',result);
+      },
+      {
+        address: app.ble_address
+      }
+    );
+  },
+
   bleScan: function(){
     var self = this;
 
     bluetoothle.startScan(
       function(result){
+        console.log('Scan successful', result)
         if(result.status=="scanStarted"){
           //TODO
         } else if(result.status=="scanResult" && result.name=="LegBagController"){
+          self.check_handle = setInterval(self.checkConnection.bind(self), self.check_interval*1000);
           self.bleStopScan();
           self.bleConnect(result.address);
         }
@@ -178,7 +211,6 @@ var app = {
       console.log("Subscription successful", result);
     } else if(result.status=="subscribedResult"){
       var value = bluetoothle.bytesToString(bluetoothle.encodedStringToBytes(result.value));
-      console.log(value);
       $('#percent_full').text(value);
     }
   },
