@@ -36,7 +36,15 @@ The program assumes the existence of several external devices:
 #include "Adafruit_BluefruitLE_UART.h"
 #include "BluefruitConfig.h"
 
+#include "CapacitiveSensor.h"
 
+typedef unsigned long time_t;
+
+//PINS
+#define SERVO_CONTROL_PIN                 5  //Pin servo will be controlled by
+#define FLEX_SENSOR_PIN                  A1  //Reads flex sensor
+#define TOUCH_EMITTER_PIN                A2  //Sends signal to touch sensor
+#define TOUCH_SENSOR_PIN                 A3  //Reads signal from touch sensor
 
 //Debugging control
 //ENSURE BOTH OF THESE ARE SET TO 0 (ZERO) FOR PRODUCTION
@@ -48,20 +56,35 @@ The program assumes the existence of several external devices:
 
 #define BLE_DEVICE_NAME  "LegBagController"  //Name other Bluetooth devices see when scanning
 
-#define SERVO_CONTROL_PIN                 5  //Pin servo will be controlled by
 #define SERVO_MIN_POS_PW                700  //Pulse width corresponding to minimum position of servo
 #define SERVO_MAX_POS_PW               2300  //Pulse width corresponding to maximum position of servo
+#define SERVO_OPEN_BAG_DEGREES            5  //Position in degrees at which servo has opened bag
+#define SERVO_CLOSE_BAG_DEGREES          57  //Position in degrees at which servo has closed bag
 
+//Backup touch sensor to open bag
+#define SECS_TO_OPEN_BAG_ON_TOUCH         5  //How many seconds the bag should be opened for when the touch sensor is activated
 
+//Measure the voltage at 5V and the actual resistance of your
+#define SECS_BETWEEN_FLEX_SAMPLES         1  //Seconds each sample-and-send of the flex sensor
+const float FLEX_VCC = 4.98;    //Measured voltage of Arduino 5V line
+const float FLEX_R   = 47500.0; //Measured resistance of voltage divider's second resistor
+time_t next_flex_sample_ms = 0;
 
 //We'll connect to the servo only when we're using it in order to reduce wear
 //and save energy. The servo's neutral position (90 degrees) is closed for the
 //tube.
 Servo myservo;
 
+//For touch button
+CapacitiveSensor touch_sensor = CapacitiveSensor(TOUCH_EMITTER_PIN,TOUCH_SENSOR_PIN);
+
 //Bluetooth device
 Adafruit_BluefruitLE_SPI ble(BLUEFRUIT_SPI_CS, BLUEFRUIT_SPI_IRQ, BLUEFRUIT_SPI_RST);
 
+//Time to close the bag again. This is set to a non-zero value if the touch
+//sensor is activated and indicates the time, in milliseconds, when the bag
+//should next be closed.
+time_t close_bag_time_ms = 0;
 
 
 //Function for handling errors
@@ -78,20 +101,79 @@ void error(const __FlashStringHelper*err) {
 void OpenBag(){
   //Connect to the servo and move it to the open position
   myservo.attach(SERVO_CONTROL_PIN,SERVO_MIN_POS_PW,SERVO_MAX_POS_PW); 
-  myservo.write(0);
+  myservo.write(SERVO_OPEN_BAG_DEGREES);
 }
 
 
 
 //Performs whatever actions are necessary to close the bag
 void CloseBag(){
-  myservo.write(90);   //Move the servo to its closed position
+  myservo.write(SERVO_CLOSE_BAG_DEGREES);   //Move the servo to its closed position
   delay(2000);         //Give it 2 seconds to get there, so we don't stop in an intermediate position
   myservo.detach();    //Disconnect from the servo
 }
 
 
 
+//Reads from the backup touch sensor
+inline void HandleTouchSensor(time_t now_ms){
+  long touch_value = touch_sensor.capacitiveSensor(30);
+
+  if(touch_value>400 && close_bag_time_ms==0){
+    close_bag_time_ms = now_ms+SECS_TO_OPEN_BAG_ON_TOUCH*1000;
+    OpenBag();
+  }
+
+  if(close_bag_time_ms>0 && now_ms>close_bag_time_ms){
+    close_bag_time_ms = 0;
+    CloseBag();
+  }
+}
+
+
+
+//Reads the flex sensor and tries to send information about it over Bluetooth
+inline void ReadAndSendFlex(time_t now_ms){
+  if(now_ms<next_flex_sample_ms)
+    return;
+
+  next_flex_sample_ms = now_ms+SECS_BETWEEN_FLEX_SAMPLES*1000;
+
+  auto  flexADC = analogRead(FLEX_SENSOR_PIN);       //Level units from ADC
+  float flexV   = flexADC * FLEX_VCC / 1023.0;       //Measured voltage from voltage divider
+  float flexR   = FLEX_R * (FLEX_VCC / flexV - 1.0); //The resistance of the flex sensor
+
+  char output[BUFSIZE+1] = "HELLO\n\0";
+
+  // Send input data to host via Bluefruit
+  ble.print(flexR);
+
+  if(DEBUG_MODE){
+    Serial.println(output);
+    Serial.println(flexR);
+  }
+}
+
+
+
+//Used by the main loop to read Bluetooth
+inline void HandleBluetoothInput(){
+  while ( ble.available() ){
+    int c = ble.read();
+
+    if(c=='O')        //Open
+      OpenBag();
+    else if(c=='C')  //Close
+      CloseBag();
+
+    if(DEBUG_MODE)
+      Serial.print((char)c);
+  }
+}
+
+
+
+//This is run when the Arduino boots up after a power cycle
 void setup(){
   if(DEBUG_MODE){
     while (!Serial);           //Required for Flora & Micro
@@ -115,6 +197,8 @@ void setup(){
     error(F("Failed to set Bluetooth name."));
 
   ble.echo(false);             //Disable command echo from Bluefruit
+  if(DEBUG_MODE)
+    ble.info();
   ble.verbose(false);          //Disable debug info from Bluefruit
 
   while(!ble.isConnected())    //Wait for a BLE connection
@@ -126,22 +210,24 @@ void setup(){
 
   //Set module to DATA mode
   ble.setMode(BLUEFRUIT_MODE_DATA);
+
+  //Pin used for flex sensor
+  pinMode(FLEX_SENSOR_PIN, INPUT);
+
+  if(DEBUG_MODE)
+    Serial.print("Setup finished!");
 }
 
 
 
+//Main loop: this runs continuously during program operation
 void loop(){
-  while ( ble.available() ){
-    int c = ble.read();
+  time_t now_ms = millis();
 
-    if(c=='O')        //Open
-      OpenBag();
-    else if(c=='C')  //Close
-      CloseBag();
-    
+  //HandleTouchSensor(now_ms);
 
-    if(DEBUG_MODE)
-      Serial.print((char)c);
-  }
+  ReadAndSendFlex(now_ms);
+
+  HandleBluetoothInput();
 }
 
