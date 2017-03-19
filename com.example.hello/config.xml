@@ -4,9 +4,8 @@
     <description>
         An app to control a leg bag emptier
     </description>
-    <author email="none@none.com" href="http://none.com">
-        Apache Cordova Team
-    </author>
+    <author email="richard.barnes@berkeley.edu" href="http://rbarnes.org">Richard Barnes</author>
+    <icon src="res/icon.png" />
     <content src="index.html" />
     <access origin="*" />
     <allow-intent href="http://*/*" />
