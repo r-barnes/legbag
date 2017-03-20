@@ -14,6 +14,13 @@ Files
 
 
 
+Diagrams
+========
+
+![Leg Bag Emptier circuit diagram](imgs/schematic.png)
+
+![Leg Bag Emptier breadboard diagram](imgs/breadboard.png)
+
 
 Contributors
 ============
