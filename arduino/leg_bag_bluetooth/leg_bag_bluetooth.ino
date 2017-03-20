@@ -119,6 +119,11 @@ void CloseBag(){
 inline void HandleTouchSensor(time_t now_ms){
   long touch_value = touch_sensor.capacitiveSensor(30);
 
+  if(DEBUG_MODE){
+    Serial.print("touch ");
+    Serial.println(touch_value);
+  }
+
   if(touch_value>400 && close_bag_time_ms==0){
     close_bag_time_ms = now_ms+SECS_TO_OPEN_BAG_ON_TOUCH*1000;
     OpenBag();
@@ -167,7 +172,7 @@ inline void HandleBluetoothInput(){
       CloseBag();
 
     if(DEBUG_MODE)
-      Serial.print((char)c);
+      Serial.println((char)c);
   }
 }
 
@@ -224,7 +229,7 @@ void setup(){
 void loop(){
   time_t now_ms = millis();
 
-  //HandleTouchSensor(now_ms);
+  HandleTouchSensor(now_ms);
 
   ReadAndSendFlex(now_ms);
 
