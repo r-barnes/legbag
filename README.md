@@ -19,6 +19,8 @@ Contributors
 ============
  * Ali Nazari
  * Richard Barnes (rijard.barnes@gmail.com, http://rbarnes.org, Github: r-barnes)
- * Katie Lau
+ * Jorge Ruiz
+ * Katherine Lau
+ * Nupur Kaku
  * Rafe Biggs
  * Viola Quach
