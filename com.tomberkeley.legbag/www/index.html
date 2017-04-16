@@ -18,31 +18,34 @@
       <title>LegBag Controller</title>
   </head>
   <body>
-    <div data-role="header" id="header">
-      <h1>Leg Bag</h1>
-    </div>
 
-    <div id="frame_main">
+    <section id="ux_main">
+      <div data-role="header" id="header">
+        <h1>Leg Bag</h1>
+      </div>
 
-    <div id="box_prev_time">
-        Last time emptied:<br><span id="prev_time"></span>
-        <br><span id="time_ago"></span>
-    </div>
+      <div id="frame_main">
 
-    <div id="box_percent_full">
-        <span id="percent_full"></span>&Omega;
-    </div>
+      <div id="box_prev_time">
+          Last time emptied:<br><span id="prev_time"></span>
+          <br><span id="time_ago"></span>
+      </div>
 
-    <div id="box_empty">
-      <input id="confirm" type="range" value="0" min="0" max="100" />
-      <div id="arrows">&rsaquo; &rsaquo; &rsaquo; &rsaquo; &rsaquo;</div>
-      <span id="emptying">EMPTYING</span>
-      <div id="empty_progress"></div>
-    </div>
+      <div id="box_percent_full">
+          <span id="percent_full"></span>&Omega;
+      </div>
 
-    <button id="stop">STOP</button>
+      <div id="box_empty">
+        <input id="confirm" type="range" value="0" min="0" max="100" />
+        <div id="arrows">&rsaquo; &rsaquo; &rsaquo; &rsaquo; &rsaquo;</div>
+        <span id="emptying">EMPTYING</span>
+        <div id="empty_progress"></div>
+      </div>
 
-    <div id="frame_previous_times"></div>
+      <button id="stop">STOP</button>
+
+      <div id="frame_previous_times"></div>
+    </section>
 
     <script type="text/javascript" src="js/zepto-1.2.0.min.js"></script>
     <script type="text/javascript" src="js/zepto.touch.min.js"></script>
