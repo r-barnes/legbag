@@ -13,8 +13,8 @@
 //Bluetooth object docs: https://github.com/randdusing/cordova-plugin-bluetoothle
 
 var app = {
-  ble_enabled: true,    //Used for debugging
-  ble_address: null,    //Hold address of associated bluetooth device
+  ble_enabled: true,   //Used for debugging
+  ble_address: null,   //Hold address of associated bluetooth device
   
   update_interval: 5,  //Seconds between updating interface times //TODO: Longer
   check_interval:  5,  //Seconds between checking connection status
