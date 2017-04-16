@@ -54,6 +54,17 @@ var app = {
 
     gui_confirm = $('#confirm');
 
+    if(!(device.platform=="Android" || device.platform=="iOS")){
+      window.plugins.toast.show(
+        'Unrecognized platform! Quitting.', 
+        'long',
+        'center',
+        function(a){/*Toast Success*/},
+        function(b){/*Toast Failure*/}
+      );
+      return;
+    }
+
     gui_confirm.on('touchend',self.ixnTouchEnd.bind(this));
     $('#stop').on('click',   self.ixnStop.bind(this));
 
