@@ -56,13 +56,12 @@ var app = {
 
     if(!(device.platform=="Android" || device.platform=="iOS")){
       window.plugins.toast.show(
-        'Unrecognized platform! Quitting.', 
+        'Unrecognized phone type!\nTrying to run using Android handshake.', 
         'long',
         'center',
         function(a){/*Toast Success*/},
         function(b){/*Toast Failure*/}
       );
-      return;
     }
 
     gui_confirm.on('touchend',self.ixnTouchEnd.bind(this));
