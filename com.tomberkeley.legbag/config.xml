@@ -29,4 +29,6 @@
     <plugin name="cordova-plugin-bluetooth-peripheral-usage-description" spec="~1.0.0">
         <variable name="TEXT" value="For connecting with leg bag device" />
     </plugin>
+    <plugin name="cordova-plugin-device" spec="~1.1.5" />
+    <plugin name="cordova-plugin-x-toast" spec="~2.6.0" />
 </widget>
