@@ -10,6 +10,8 @@
   write: function(){}
 }*/
 
+//Bluetooth object docs: https://github.com/randdusing/cordova-plugin-bluetoothle
+
 var app = {
   ble_enabled: true,    //Used for debugging
   ble_address: null,    //Hold address of associated bluetooth device
