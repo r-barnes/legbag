@@ -22,6 +22,16 @@ Diagrams
 ![Leg Bag Emptier breadboard diagram](imgs/breadboard.png)
 
 
+
+Debugging
+============
+
+On Android with Google Chrome you can debug the app by enabling **Developer
+Mode** on the phone and then enabling **USB Debugging**. You can then go to
+[chrome://inspect](chrome://inspect) to see what's happening on the app.
+
+
+
 Contributors
 ============
  * Ali Nazari
