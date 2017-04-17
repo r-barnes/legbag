@@ -72,16 +72,16 @@ var app = {
     self.interfacePastTimes();
     setInterval(self.interfaceUpdateTimes.bind(this), self.update_interval*1000);
 
-    self.bleInitialize().then(function(result){
-      return self.bleScan();
-    }).then(function(result){
+    self.bleInitialize().then(
+      self.bleScan
+    ).then(function(result){
       self.check_handle = setInterval(self.checkConnection.bind(self), self.check_interval*1000);
-      return self.bleStopScan();
+      return bluetoothle.stopScanP();
     }).then(function(result){
       return self.bleConnect(result.address);
-    }).then(function(result){
-      return self.bleSubscribe();
-    }).catch(function(result){
+    }).then(
+      self.bleSubscribe
+    ).catch(function(result){
       window.plugins.toast.show(
         'Error: ' + result,
         'long',
@@ -96,23 +96,39 @@ var app = {
 
   checkConnection: function(){
     var self = this;
-    self.bleIsConnected().then(function(result){
-      if(!result.isConnected){
-        return Promise.resolve().then(function(){
-          if(device.platform=="Android")
-            return self.bleClose()
-          else
-            return self.bleDisconnect().then(self.bleClose());  
-        }).then(
-          self.bleIsScanning()
-        ).then(function(result){
-          if(!result.isScanning){
-            return self.bleScan();
-            clearTimeout(self.check_handle);
-          }
+    bluetoothle.isConnectedP().then(function(result){
+      if(result.isConnected)
+        return true;
+      
+      var seq = Promise.resolve();
+
+      //Close existing connection
+      if(self.ble_address!==null){
+        if(device.platform=="iOS")
+          seq.then(function(){
+            return bluetoothle.disconnectP({address:self.ble_address});
+          });
+        seq.then(function(){
+          return bluetoothle.closeP({address:self.ble_address});
+        }).then(function(result){
+          if(result.status!="closed")
+            throw "Could not close connection!";
+          self.ble_address = null;
           return true;
         });
       }
+
+      seq.then(
+        bluetoothle.isScanningP
+      ).then(function(result){
+        if(!result.isScanning){
+          clearTimeout(self.check_handle);
+          return self.bleScan();
+        }
+        return true;
+      });
+
+      return seq;
     }).catch(function(result){
       window.plugins.toast.show(
         'Disconnected. Trying to re-establish connection\n'+result, 
@@ -144,33 +160,13 @@ var app = {
     });
   },
 
-  bleIsConnected: function(){
-    var self = this;
-    return new Promise(function(resolve,reject){
-      bluetoothle.isConnected(resolve,reject,{address:self.ble_address});
-    });
-  },
-
-  bleClose: function(){
-    var self = this;
-    return new Promise(function(resolve,reject){
-      bluetoothle.close(resolve,reject,{address:self.ble_address});
-    });
-  },
-
-  bleIsScanning: function(){
-    return new Promise(function(resolve,reject){
-      bluetoothle.isScanning(resolve);
-    });
-  },
-
   bleScan: function(){
     var self = this;
 
     return new Promise(function(resolve,reject){
       bluetoothle.startScan(
         function(result){
-          console.log('Scan successful', result)
+          console.log('Scan successful', result);
           if(result.status=="scanStarted"){
             //TODO
           } else if(result.status=="scanResult" && result.name=="LegBagController"){
@@ -186,111 +182,56 @@ var app = {
     });
   },
 
-  bleStopScan: function(result){
-    return new Promise(function(resolve,reject){
-      bluetoothle.stopScan(resolve,reject);
-    });
-  },
-
   bleConnect: function(address){
     var self = this;
     return new Promise(function(resolve,reject){
       bluetoothle.connect(
         function(result){
           self.ble_address = address;
-          console.log("Connected!");
           if(device.platform=="Android")
-            resolve(self.bleDiscover());
+            resolve(self.connectAndroid());
           else if(device.platform=="iOS")
-            resolve(self.bleServices());
+            resolve(self.connectIOS());
         },
-        function(result){
-          console.log("Failed to connect!",result);
-          reject(result);
-        },
+        reject,
         {address:address}
       );
     });
   },
 
-  bleDisconnect: function(){
-    return new Promise(function(resolve,reject){
-      bluetoothle.disconnect(
-        function(result){
-          resolve(result);
-        },
-        function(result){
-          reject(result);
-        },
-        {
-          address: self.ble_address
-        }
-      );
-    });
+  connectAndroid: function(){
+    var seq = Promise.resolve();
+    seq.then(bluetoothle.discoverP);
+    return seq;
   },
 
-  //Android only
-  bleDiscover: function(){
-    var self = this;
-    return new Promise(function(resolve,reject){
-      bluetoothle.discover(resolve,reject,{address:self.ble_address});
+  connectIOS: function(){
+    var seq = Promise.resolve();
+    seq.then(function(){
+      return bluetoothle.servicesP({
+        address:  self.ble_address,
+        services: [UART_SERVICE_UUID]
+      });
+    }).then(function(){
+      return bluetoothle.characteristicsP({
+        address:         self.ble_address,
+        service:         UART_SERVICE_UUID,
+        characteristics: [TX_CHAR_UUID, RX_CHAR_UUID]
+      });
+    }).then(function(){
+      var a = bluetoothle.descriptorsP({
+        address:        self.ble_address,
+        service:        UART_SERVICE_UUID,
+        characteristic: TX_CHAR_UUID
+      });
+      var b = bluetoothle.descriptorsP({
+        address:        self.ble_address,
+        service:        UART_SERVICE_UUID,
+        characteristic: RX_CHAR_UUID
+      });
+      return Promise.all([a,b]);
     });
-  },
-
-  //iOS only
-  bleServices: function(){
-    var self = this;
-    return new Promise(function(resolve,reject){
-      bluetoothle.services(
-        function(result){
-          //We don't pass anything to bleCharacteristics because we either succeed
-          //in finding the expect service or we do nothing
-          resolve(self.bleCharacteristics());
-          console.log('Services succeeded',result);
-        },
-        reject,
-        {
-          address:  self.ble_address,
-          services: [UART_SERVICE_UUID]
-        }
-      );
-    });
-  },
-
-  //iOS only
-  bleCharacteristics: function(){
-    var self = this;
-    return new Promise(function(resolve,reject){
-      bluetoothle.services(
-        function(result){
-          var a = self.bleDescriptors(TX_CHAR_UUID);
-          var b = self.bleDescriptors(RX_CHAR_UUID);
-          resolve(Promise.all([a,b]));
-          console.log('Characeteristics succeeded',result);
-        },
-        reject,
-        {
-          address:         self.ble_address,
-          service:         UART_SERVICE_UUID,
-          characteristics: [TX_CHAR_UUID, RX_CHAR_UUID]
-        }
-      );
-    });
-  },
-
-  bleDescriptors: function(char){
-    var self = this;
-    return new Promise(function(resolve, reject){
-      bluetoothle.services(
-        resolve,
-        reject,
-        {
-          address:        self.ble_address,
-          service:        UART_SERVICE_UUID,
-          characteristic: char
-        }
-      );
-    });
+    return seq;
   },
 
   bleWrite: function(msg){
@@ -362,7 +303,7 @@ var app = {
       this.empty_data = [];
     } else {
       this.empty_data = JSON.parse(this.empty_data);
-      for(i in this.empty_data)
+      for(var i in this.empty_data)
         this.empty_data[i] = new Date(Date.parse(this.empty_data[i]));
     }
   },
@@ -432,7 +373,7 @@ var app = {
     var secs = (now-recent)/1000;
     var out  = "";
 
-    var hours = Math.floor(secs/3600)
+    var hours = Math.floor(secs/3600);
     secs      = secs%3600;
     var mins  = Math.floor(secs/60);
     secs      = Math.floor(secs % 60);
@@ -447,7 +388,7 @@ var app = {
 
   interfacePastTimes: function(){
     var out = "";
-    for(i in this.empty_data)
+    for(var i in this.empty_data)
       out += this.empty_data[i].toLocaleString() + "<br>";
     $('#frame_previous_times').html(out);
   },
