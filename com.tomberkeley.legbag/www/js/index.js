@@ -72,154 +72,275 @@ var app = {
     self.interfacePastTimes();
     setInterval(self.interfaceUpdateTimes.bind(this), self.update_interval*1000);
 
-    bluetoothle.initialize(
-      function(result){
-        if(result.status=="enabled"){
-          self.bleScan();
-        } else {
-
-        }
-      }, 
-      {
-        request:        true,
-        statusReceiver: false,
-        restoreKey:     "legbag_bluetooth"
-      }
-    );
+    self.bleInitialize().then(function(result){
+      return self.bleScan();
+    }).then(function(result){
+      self.check_handle = setInterval(self.checkConnection.bind(self), self.check_interval*1000);
+      return self.bleStopScan();
+    }).then(function(result){
+      return self.bleConnect(result.address);
+    }).then(function(result){
+      return self.bleSubscribe();
+    }).catch(function(result){
+      window.plugins.toast.show(
+        'Error: ' + result,
+        'long',
+        'center',
+        function(a){/*Toast Success*/},
+        function(b){/*Toast Failure*/}
+      );
+    }).then(function(){
+      //At this point we should be subscribed to the Bluetooth
+    });
   },
 
   checkConnection: function(){
     var self = this;
-    bluetoothle.isConnected(
-      function(result){
-        console.log('isConnected true',result);
-        if(!result.isConnected){
-          bluetoothle.close(
-            function(result){console.log('close success',result);},
-            function(result){console.log('close failure',result);},
-            {address:self.ble_address}
-          );
-          bluetoothle.isScanning(function(result){
-            if(!result.isScanning){
-              self.bleScan();
-              clearTimeout(self.check_handle);
-            }
-          });
-        }
-      },
-      function(result){
-        console.log('isConnected failure',result);
-      },
-      {
-        address: app.ble_address
+    self.bleIsConnected().then(function(result){
+      if(!result.isConnected){
+        return Promise.resolve().then(function(){
+          if(device.platform=="Android")
+            return self.bleClose()
+          else
+            return self.bleDisconnect().then(self.bleClose());  
+        }).then(
+          self.bleIsScanning()
+        ).then(function(result){
+          if(!result.isScanning){
+            return self.bleScan();
+            clearTimeout(self.check_handle);
+          }
+          return true;
+        });
       }
-    );
+    }).catch(function(result){
+      window.plugins.toast.show(
+        'Disconnected. Trying to re-establish connection\n'+result, 
+        'short',
+        'center',
+        function(a){/*Toast Success*/},
+        function(b){/*Toast Failure*/}
+      );
+    });
+  },
+
+  bleInitialize: function(){
+    var self = this;
+    return new Promise(function(resolve,reject){
+      bluetoothle.initialize(
+        function(result){
+          if(result.status=="enabled"){
+            resolve(result);
+          } else {
+            reject(result);
+          }
+        }, 
+        {
+          request:        true,
+          statusReceiver: false,
+          restoreKey:     "legbag_bluetooth"
+        }
+      );
+    });
+  },
+
+  bleIsConnected: function(){
+    var self = this;
+    return new Promise(function(resolve,reject){
+      bluetoothle.isConnected(resolve,reject,{address:self.ble_address});
+    });
+  },
+
+  bleClose: function(){
+    var self = this;
+    return new Promise(function(resolve,reject){
+      bluetoothle.close(resolve,reject,{address:self.ble_address});
+    });
+  },
+
+  bleIsScanning: function(){
+    return new Promise(function(resolve,reject){
+      bluetoothle.isScanning(resolve);
+    });
   },
 
   bleScan: function(){
     var self = this;
 
-    bluetoothle.startScan(
-      function(result){
-        console.log('Scan successful', result)
-        if(result.status=="scanStarted"){
-          //TODO
-        } else if(result.status=="scanResult" && result.name=="LegBagController"){
-          self.check_handle = setInterval(self.checkConnection.bind(self), self.check_interval*1000);
-          self.bleStopScan();
-          self.bleConnect(result.address);
-        }
-      },
-      function(result){
-        console.log('startScan',result);//TODO
-      }, 
-      null
-    );
-  },
-
-  bleGetConnected: function() {
-    bluetoothle.retrieveConnected(
-      function(){
-        //TODO
-      },
-      function(){
-        //TODO
-      },
-      {services:['180D','2343']}
-    ); //TODO: Put your service ID here
+    return new Promise(function(resolve,reject){
+      bluetoothle.startScan(
+        function(result){
+          console.log('Scan successful', result)
+          if(result.status=="scanStarted"){
+            //TODO
+          } else if(result.status=="scanResult" && result.name=="LegBagController"){
+            resolve();
+          }
+        },
+        function(result){
+          console.log('Scan failed',result); //TODO
+          reject(result);
+        }, 
+        null
+      );
+    });
   },
 
   bleStopScan: function(result){
-    bluetoothle.stopScan(function(){}, function(){}); //TODO: Success, Failure
+    return new Promise(function(resolve,reject){
+      bluetoothle.stopScan(resolve,reject);
+    });
   },
 
   bleConnect: function(address){
     var self = this;
-    bluetoothle.connect(
-      function(result){
-        self.ble_address = address;
-        console.log("Connected!");
-        self.bleDiscover();
-      },
-      function(result){
-        console.log("Failed to connect!",result);
-      },
-      {address:address}
-    );
+    return new Promise(function(resolve,reject){
+      bluetoothle.connect(
+        function(result){
+          self.ble_address = address;
+          console.log("Connected!");
+          if(device.platform=="Android")
+            resolve(self.bleDiscover());
+          else if(device.platform=="iOS")
+            resolve(self.bleServices());
+        },
+        function(result){
+          console.log("Failed to connect!",result);
+          reject(result);
+        },
+        {address:address}
+      );
+    });
   },
 
+  bleDisconnect: function(){
+    return new Promise(function(resolve,reject){
+      bluetoothle.disconnect(
+        function(result){
+          resolve(result);
+        },
+        function(result){
+          reject(result);
+        },
+        {
+          address: self.ble_address
+        }
+      );
+    });
+  },
+
+  //Android only
   bleDiscover: function(){
     var self = this;
-    bluetoothle.discover(
-      function(result){
-        self.bleSubscribe();
-        console.log('Discover succeeded',result);
-      },
-      function(result){
-        console.log('Discover failed',result);
-      }, 
-      {address:self.ble_address}
-    );
+    return new Promise(function(resolve,reject){
+      bluetoothle.discover(resolve,reject,{address:self.ble_address});
+    });
   },
 
-  bleWrite: function(msg, succfunc){
+  //iOS only
+  bleServices: function(){
+    var self = this;
+    return new Promise(function(resolve,reject){
+      bluetoothle.services(
+        function(result){
+          //We don't pass anything to bleCharacteristics because we either succeed
+          //in finding the expect service or we do nothing
+          resolve(self.bleCharacteristics());
+          console.log('Services succeeded',result);
+        },
+        reject,
+        {
+          address:  self.ble_address,
+          services: [UART_SERVICE_UUID]
+        }
+      );
+    });
+  },
+
+  //iOS only
+  bleCharacteristics: function(){
+    var self = this;
+    return new Promise(function(resolve,reject){
+      bluetoothle.services(
+        function(result){
+          var a = self.bleDescriptors(TX_CHAR_UUID);
+          var b = self.bleDescriptors(RX_CHAR_UUID);
+          resolve(Promise.all([a,b]));
+          console.log('Characeteristics succeeded',result);
+        },
+        reject,
+        {
+          address:         self.ble_address,
+          service:         UART_SERVICE_UUID,
+          characteristics: [TX_CHAR_UUID, RX_CHAR_UUID]
+        }
+      );
+    });
+  },
+
+  bleDescriptors: function(char){
+    var self = this;
+    return new Promise(function(resolve, reject){
+      bluetoothle.services(
+        resolve,
+        reject,
+        {
+          address:        self.ble_address,
+          service:        UART_SERVICE_UUID,
+          characteristic: char
+        }
+      );
+    });
+  },
+
+  bleWrite: function(msg){
     var self          = this;
     var bytes         = bluetoothle.stringToBytes(msg);
     var encodedString = bluetoothle.bytesToEncodedString(bytes);
-    bluetoothle.write(
-      function(result){
-        if(result.status=="written" && succfunc)
-          succfunc();
-      }, 
-      function(result){
-        console.log('Write failure',result); //TODO
-      },
-      {
-        address:        self.ble_address,
-        service:        self.UART_SERVICE_UUID,
-        characteristic: self.TX_CHAR_UUID,
-        value:          encodedString
-      }
-    );
+
+    return new Promise(function(resolve,reject){
+      bluetoothle.write(
+        function(result){
+          if(result.status=="written")
+            resolve(result);
+          else
+            reject(result);
+        }, 
+        reject,
+        {
+          address:        self.ble_address,
+          service:        self.UART_SERVICE_UUID,
+          characteristic: self.TX_CHAR_UUID,
+          value:          encodedString
+        }
+      );
+    });
   },
 
   bleSubscribe: function(){
     var self = this;
 
-    bluetoothle.subscribe(self.subscribeReceived.bind(self),
-      function(result){
-        console.log("subscribe failure",result); //TODO
-      },
-      {
-        address:        self.ble_address,
-        service:        self.UART_SERVICE_UUID,
-        characteristic: self.RX_CHAR_UUID
-      }
-    );
+    self.subscribe_promise = new Promise(function(resolve,reject){
+      bluetoothle.subscribe(
+        self.subscribeReceived.bind(self),
+        function(result){
+          reject(result);
+          console.log("subscribe failure",result); //TODO
+        },
+        {
+          address:        self.ble_address,
+          service:        self.UART_SERVICE_UUID,
+          characteristic: self.RX_CHAR_UUID
+        }
+      );
+    });
+
+    return self.subscribe_promise;
   },
 
   subscribeReceived: function(result){
     if(result.status=="subscribed"){
+      self.subscribe_promise.resolve();
       console.log("Subscription successful", result);
     } else if(result.status=="subscribedResult"){
       var value = bluetoothle.bytesToString(bluetoothle.encodedStringToBytes(result.value));
@@ -227,12 +348,12 @@ var app = {
     }
   },
 
-  bagEmpty: function(succfunc){
-    this.bleWrite("O", succfunc); //TODO
+  bagEmpty: function(){
+    return this.bleWrite("O"); //TODO
   },
 
-  bagStopEmpty: function(succfunc){
-    this.bleWrite("C", succfunc); //TODO
+  bagStopEmpty: function(){
+    return this.bleWrite("C"); //TODO
   },
 
   dataLoad: function(){
@@ -264,7 +385,7 @@ var app = {
   },
 
   interfaceStopEmpty: function(){
-    this.bagStopEmpty(function(){
+    this.bagStopEmpty().then(function(){
       gui_confirm.val(0);
       gui_confirm.show();
       $("#arrows").show();
@@ -292,7 +413,7 @@ var app = {
     $("#emptying").show();
     $('#stop').show();
     $('#empty_progress').show();
-    self.bagEmpty(function(){
+    self.bagEmpty().then(function(){
       empty_start = new Date();
       self.dataAddEmpty(new Date());
       self.interfaceUpdateTimes();
