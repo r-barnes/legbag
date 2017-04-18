@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <!--
+      Customize this policy to fit your own app's needs. For more guidance, see:
+          https://github.com/apache/cordova-plugin-whitelist/blob/master/README.md#content-security-policy
+      Some notes:
+          * gap: is required only on iOS (when using UIWebView) and is needed for JS->native communication
+          * https://ssl.gstatic.com is required only on Android and is needed for TalkBack to function properly
+          * Disables use of inline scripts in order to mitigate risk of XSS vulnerabilities. To change this:
+              * Enable inline JS: add 'unsafe-inline' to default-src
+      -->
+      <!--<meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *; img-src 'self' data: content:;">-->
+      <meta name="format-detection" content="telephone=no">
+      <meta name="msapplication-tap-highlight" content="no">
+      <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+      <link rel="stylesheet" type="text/css" href="css/index.css">
+      <title>LegBag Controller</title>
+  </head>
+  <body>
+
+    <section id="ux_main">
+      <div data-role="header" id="header">
+        <h1>Leg Bag</h1>
+      </div>
+
+      <div id="frame_main">
+
+      <div id="box_prev_time">
+          Last time emptied:<br><span id="prev_time"></span>
+          <br><span id="time_ago"></span>
+      </div>
+
+      <div id="box_percent_full">
+          <span id="percent_full"></span>&Omega;
+      </div>
+
+      <div id="box_empty">
+        <input id="confirm" type="range" value="0" min="0" max="100" />
+        <div id="arrows">&rsaquo; &rsaquo; &rsaquo; &rsaquo; &rsaquo;</div>
+        <span id="emptying">EMPTYING</span>
+        <div id="empty_progress"></div>
+      </div>
+
+      <button id="stop">STOP</button>
+
+      <div id="frame_previous_times"></div>
+    </section>
+
+    <script type="text/javascript" src="js/zepto-1.2.0.min.js"></script>
+    <script type="text/javascript" src="js/zepto.touch.min.js"></script>
+    <script type="text/javascript" src="cordova.js"></script>
+    <!--TODO <script type="text/javascript" src="js/lodash.js"></script>-->
+    <script type="text/javascript" src="js/ble_promises.js"></script>
+    <script type="text/javascript" src="js/index.js"></script>
+  </body>
+</html>

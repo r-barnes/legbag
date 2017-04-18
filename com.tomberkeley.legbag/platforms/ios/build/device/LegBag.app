@@ -1,0 +1,1 @@
+/Users/alinazari/Library/Developer/Xcode/DerivedData/LegBag-hcpucfflenqmbseeekvsgbdxaasl/Build/Intermediates/ArchiveIntermediates/LegBag/InstallationBuildProductsLocation/Applications/LegBag.app
